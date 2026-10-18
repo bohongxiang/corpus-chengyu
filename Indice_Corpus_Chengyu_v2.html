@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corpus Chengyu — Indice Interattivo | Oksana Boiko</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header {
+            text-align: center; color: white; margin-bottom: 30px; padding: 30px;
+            background: rgba(255,255,255,0.1); border-radius: 20px;
+        }
+        h1 { font-size: 2.5em; margin-bottom: 10px; font-weight: 300; }
+        .subtitle { font-size: 1.2em; opacity: 0.9; }
+        .stats {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px; margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white; padding: 25px; border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center;
+        }
+        .stat-number { font-size: 3em; font-weight: bold; color: #667eea; }
+        .stat-label { color: #666; margin-top: 5px; }
+        .filters {
+            background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .filter-group { display: block; margin: 10px 0; }
+        .filter-label { font-weight: bold; color: #333; margin-right: 10px; }
+        .filter-btn {
+            padding: 8px 16px; border: 2px solid #667eea; background: white; color: #667eea;
+            border-radius: 25px; cursor: pointer; margin: 4px 5px; transition: all 0.3s;
+        }
+        .filter-btn.active { background: #667eea; color: white; }
+        .chengyu-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;
+        }
+        .chengyu-card {
+            background: white; border-radius: 15px; padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1); cursor: pointer;
+            border-left: 5px solid #ccc;
+        }
+        .chengyu-card.completata { border-left-color: #4CAF50; }
+        .chengyu-card.mancata { border-left-color: #9E9E9E; }
+        .chengyu-card.parziale { border-left-color: #FFC107; }
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;
+        }
+        .card-id { font-weight: bold; color: #667eea; font-size: 0.9em; }
+        .status-badge {
+            padding: 4px 12px; border-radius: 12px; font-size: 0.75em;
+            font-weight: bold; text-transform: uppercase;
+        }
+        .status-completata { background: #E8F5E9; color: #2E7D32; }
+        .status-mancata { background: #F5F5F5; color: #616161; }
+        .status-parziale { background: #FFF8E1; color: #F57F17; }
+        .chengyu-char {
+            font-size: 2em; color: #333; margin: 10px 0;
+            font-family: "PingFang SC", "Microsoft YaHei", "SimSun", serif;
+        }
+        .chengyu-pinyin { color: #888; font-style: italic; margin-bottom: 10px; }
+        .card-meta { font-size: 0.85em; color: #666; margin-top: 10px; }
+        .detail-panel { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+        .detail-row { margin: 10px 0; font-size: 0.9em; }
+        .detail-label { font-weight: bold; color: #667eea; display: inline-block; width: 100px; }
+        .cn-text {
+            background: #f8f9fa; padding: 10px; border-radius: 8px; margin: 5px 0;
+            font-family: "PingFang SC", "Microsoft YaHei", "SimSun", serif;
+        }
+        .it-text { background: #e3f2fd; padding: 10px; border-radius: 8px; margin: 5px 0; font-style: italic; }
+        .category-badge {
+            display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 0.8em; margin-top: 5px;
+        }
+        .cat-biaotai { background: #E3F2FD; color: #1565C0; }
+        .cat-bochi { background: #FFEBEE; color: #C62828; }
+        .cat-changyi { background: #E8F5E9; color: #2E7D32; }
+        .expand-hint { text-align: center; color: #999; font-size: 0.8em; margin-top: 10px; }
+        .legend {
+            background: white; padding: 20px; border-radius: 15px; margin-top: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .legend-item { display: flex; align-items: center; margin: 10px 0; }
+        .legend-color { width: 20px; height: 20px; border-radius: 5px; margin-right: 10px; flex-shrink: 0; }
+        footer { text-align: center; color: white; margin-top: 30px; padding: 20px; opacity: 0.8; }
+        @media (max-width: 768px) {
+            .chengyu-grid { grid-template-columns: 1fr; }
+            h1 { font-size: 1.8em; }
+            body { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Corpus Chengyu 成语</h1>
+            <div class="subtitle">Indice delle 36 Schede — Oksana Boiko, Università degli Studi dell'Insubria</div>
+            <div style="margin-top: 15px; font-size: 0.9em; opacity: 0.8;">
+                Relatrice: Prof.ssa Chiara Bertulessi | Sessione: Febbraio 2027
+            </div>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card"><div class="stat-number">36</div><div class="stat-label">Schede Totali</div></div>
+            <div class="stat-card"><div class="stat-number" style="color: #4CAF50;">17</div><div class="stat-label">Completate</div></div>
+            <div class="stat-card"><div class="stat-number" style="color: #9E9E9E;">17</div><div class="stat-label">Mancata Diffusione</div></div>
+            <div class="stat-card"><div class="stat-number" style="color: #FFC107;">2</div><div class="stat-label">Parziali</div></div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <span class="filter-label">Categoria:</span>
+                <button class="filter-btn active" data-f="cat:all">Tutte</button>
+                <button class="filter-btn" data-f="cat:表态">表态 (Espressione)</button>
+                <button class="filter-btn" data-f="cat:驳斥">驳斥 (Confutazione)</button>
+                <button class="filter-btn" data-f="cat:倡议">倡议 (Iniziativa)</button>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Stato:</span>
+                <button class="filter-btn active" data-f="status:all">Tutti</button>
+                <button class="filter-btn" data-f="status:completata">Completate</button>
+                <button class="filter-btn" data-f="status:mancata">Mancata</button>
+                <button class="filter-btn" data-f="status:parziale">Parziali</button>
+            </div>
+        </div>
+
+        <div class="chengyu-grid" id="chengyuGrid">
+        <div class="chengyu-card completata" data-cat="表态" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.1.1</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">和而不同</div>
+            <div class="chengyu-pinyin">hé ér bù tóng</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Discorso Xi Jinping, APEC (31/10/2025)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">Harmony without uniformity</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Assente (resa inglese nel link)</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Ciclo Interrotto: sfumatura confuciana persa</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="表态" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.1.2</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">和而不同</div>
+            <div class="chengyu-pinyin">hé ér bù tóng</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Wang Yi, Consiglio Sicurezza ONU (18/02/2025)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">和而不同是一切事物发生发展的规律</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Favorire uno sviluppo inclusivo e vantaggioso per tutti</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione + sostituzione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Concetto filosofico ridotto a formula diplomatica</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="表态" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.1.3</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">和而不同</div>
+            <div class="chengyu-pinyin">hé ér bù tóng</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Xi Jinping, Conferenza Amicizia (11/10/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">和而不同是一切事物发生发展的规律</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Nessun adattamento italiano rinvenuto</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="表态" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.2.1</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">互利共赢</div>
+            <div class="chengyu-pinyin">hù lì gòng yíng</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Xi Jinping, BRICS Business Forum (22/06/2022)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">我们要同舟共济，共同实现合作共赢</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Formule generiche: cooperazione vantaggiosa / benefici reciproci</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Riduzione pragmatica: visione geopolitica → formula burocratica</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="表态" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.2.2</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">互利共赢</div>
+            <div class="chengyu-pinyin">hù lì gòng yíng</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Li Qiang - von der Leyen (24/07/2025)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">互利共赢</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Benefici reciproci</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione / adattamento semantico</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Formula economica standardizzata</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="表态" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.2.3</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">互利共赢</div>
+            <div class="chengyu-pinyin">hù lì gòng yíng</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Xi Jinping, vertice SCO (01/09/2025)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">互利共赢</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Benefici condivisi / sviluppo comune</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Vittoria comune semplificata in generico auspicio</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="表态" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.3.1</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">独立自主</div>
+            <div class="chengyu-pinyin">dú lì zì zhǔ</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Xi Jinping, Dialogo CPC-Partiti mondiali (15/03/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">我们要秉持独立自主原则</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Stesso evento di 3.3.1</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="表态" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.3.2</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">独立自主</div>
+            <div class="chengyu-pinyin">dú lì zì zhǔ</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Wang Yi, conferenza Due Incontri (07/03/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">坚定奉行独立自主的和平外交政策</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">We will remain firm in pursuing the independent foreign policy of peace [EN]</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Sostituzione + slittamento linguistico</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Unica scheda con Fonte B sul sito: solo inglese, no italiano</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="表态" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.3.3</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">独立自主</div>
+            <div class="chengyu-pinyin">dú lì zì zhǔ</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Xi Jinping, vertice SCO (04/07/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">独立自主制定对外政策</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Fiducia reciproca strategica, direzione giusta [sintesi]</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Titolo del discorso resta in inglese</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card parziale" data-cat="表态" data-status="parziale" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.4.1</span>
+                <span class="status-badge status-parziale">parziale</span>
+            </div>
+            <div class="chengyu-char">平等相待</div>
+            <div class="chengyu-pinyin">píng děng xiāng dài</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Xi Jinping, 70° Cinque Principi (28/06/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">首先要把平等相待、互尊互信摆在前面</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Da verificare</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Post FB trovato solo come titolo/sintesi</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="表态" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.4.2</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">平等相待</div>
+            <div class="chengyu-pinyin">píng děng xiāng dài</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Xi Jinping, 80° anniversario vittoria (03/09/2025)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">平等相待、和睦相处、守望相助</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Uguaglianza, solidarietà e dialogo tra i popoli</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione + parafrasi</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Triade compressa in tre nomi generici</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="表态" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 1.4.3</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">平等相待</div>
+            <div class="chengyu-pinyin">píng děng xiāng dài</div>
+            <span class="category-badge cat-biaotai">表态 Espressione</span>
+            <div class="card-meta">Xi Jinping, IV Forum Cina-CELAC (13/05/2025)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">中拉已经成为携手共进的命运共同体，其鲜明底色是平等相待</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Contesto latinoamericano: circolazione globale del lessico</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.1.1</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">信口开河</div>
+            <div class="chengyu-pinyin">xìn kǒu kāi hé</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Mao Ning, briefing su Taiwan (28/02/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">停止混淆视听、信口开河</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione strutturale</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Briefing MFA non tradotti in italiano</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.1.2</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">信口开河</div>
+            <div class="chengyu-pinyin">xìn kǒu kāi hé</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Mao Ning, briefing critica USA (02/03/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">停止混淆视听、信口开河、以己度人</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione strutturale</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Sequenza di tre quadrivocaboli in climax</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.1.3</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">信口开河</div>
+            <div class="chengyu-pinyin">xìn kǒu kāi hé</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Hua Chunying, briefing su Xinjiang (03/04/2020)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">纯属凭空捏造，信口开河</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione strutturale</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Controllo diacronico: formula stabile nel repertorio 驳斥</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.2.1</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">颠倒是非</div>
+            <div class="chengyu-pinyin">diān dǎo shì fēi</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Lin Jian, briefing rapporto UK Hong Kong (16/04/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">英方所谓报告罔顾事实、颠倒是非</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Mirror ufficiale MFA</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.2.2</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">颠倒是非</div>
+            <div class="chengyu-pinyin">diān dǎo shì fēi</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Wang Wenbin, briefing Fukushima (01/09/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">纯属罔顾事实、颠倒是非</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione strutturale</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Formula fissa applicata a tre dossier diversi</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.2.3</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">颠倒是非</div>
+            <div class="chengyu-pinyin">diān dǎo shì fēi</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Lin Jian, briefing dichiarazione Filippine (19/04/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">菲方有关声明颠倒是非</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Secondo contesto</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="驳斥" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.3.1</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">指鹿为马</div>
+            <div class="chengyu-pinyin">zhǐ lù wéi mǎ</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Briefing Portavoce MFA (07/05/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">指鹿为马</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Distorsione intenzionale dei fatti</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Sostituzione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Video verticale 9:16, tono wolf warrior → testo statico neutro</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.3.2</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">指鹿为马</div>
+            <div class="chengyu-pinyin">zhǐ lù wéi mǎ</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Lin Jian, briefing rapporto Canada (06/05/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">指鹿为马，自相矛盾，极其不负责任</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione strutturale</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Giorno prima di 2.3.1, dossier diverso</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.3.3</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">指鹿为马</div>
+            <div class="chengyu-pinyin">zhǐ lù wéi mǎ</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Wang Wenbin, briefing Hong Kong (31/03/2022)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">英方的攻击指责完全是指鹿为马、颠倒黑白</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione strutturale</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Combinazione con 颠倒黑白</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.4.1</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">双重标准</div>
+            <div class="chengyu-pinyin">shuāng chóng biāo zhǔn</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Wang Wenbin, briefing Jimmy Lai (18/12/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">是赤裸裸的政治操弄和百分百的双重标准</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Caso bochi denso</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.4.2</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">双重标准</div>
+            <div class="chengyu-pinyin">shuāng chóng biāo zhǔn</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Wang Wenbin, briefing Monaco (20/02/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">不能选择性适用，更不能搞双重标准</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Contesto sicurezza europea</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="驳斥" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 2.4.3</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">双重标准</div>
+            <div class="chengyu-pinyin">shuāng chóng biāo zhǔn</div>
+            <span class="category-badge cat-bochi">驳斥 Confutazione</span>
+            <div class="card-meta">Wang Wenbin, briefing armi biologiche (12/04/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">国际社会不会接受这种美式双重标准</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Formula 美式双重标准</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="倡议" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.1.1</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">同舟共济</div>
+            <div class="chengyu-pinyin">tóng zhōu gòng jì</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Xi Jinping, Forum Boao (21/04/2022)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">同舟共济</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Cooperation and solidarity [EN]</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione (IT) + mediazione EN</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Iconografia marittima scompare già in EN</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="倡议" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.1.2</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">同舟共济</div>
+            <div class="chengyu-pinyin">tóng zhōu gòng jì</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Xi Jinping, G20 Rio (18/11/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">这些年，我们同舟共济、应对国际金融危机</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Governance globale equa e inclusiva [sintesi]</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Immagine della barca comune scompare</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="倡议" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.1.3</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">同舟共济</div>
+            <div class="chengyu-pinyin">tóng zhōu gòng jì</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Xi Jinping, BRICS 2022 (22/06/2022)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">我们要同舟共济，共同实现合作共赢</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Devono agire insieme per portare forza positiva</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Stesso evento di 1.2.1, altra occorrenza</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="倡议" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.2.1</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">守望相助</div>
+            <div class="chengyu-pinyin">shǒu wàng xiāng zhù</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Xi Jinping, Vertice Cina-Asia Centrale (19/05/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">携手建设守望相助、共同发展、普遍安全、世代友好的中国－中亚命运共同体</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Mutua assistenza / ASSISTENZA RECIPROCA</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Sostituzione con formula generale</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Unico caso con resa esplicita: significato sopravvive, ma lettore IT non percepisce chengyu né eco classica (Mengzi)</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="倡议" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.2.2</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">守望相助</div>
+            <div class="chengyu-pinyin">shǒu wàng xiāng zhù</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Xi Jinping, 80° anniversario (03/09/2025)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">平等相待、和睦相处、守望相助</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Uguaglianza, solidarietà e dialogo tra i popoli</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione + parafrasi</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Stesso testo di 1.4.2, occorrenza diversa</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card parziale" data-cat="倡议" data-status="parziale" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.2.3</span>
+                <span class="status-badge status-parziale">parziale</span>
+            </div>
+            <div class="chengyu-char">守望相助</div>
+            <div class="chengyu-pinyin">shǒu wàng xiāng zhù</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Xi Jinping, FOCAC (04/09/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">在抗击新冠疫情中守望相助</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Da verificare</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Post FB trovato solo come titolo/sintesi</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="倡议" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.3.1</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">携手同行</div>
+            <div class="chengyu-pinyin">xié shǒu tóng xíng</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Xi Jinping, Dialogo CPC-Partiti mondiali (15/03/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">《携手同行现代化之路》 (titolo)</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Chengyu nel titolo; stesso evento di 1.3.1</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="倡议" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.3.2</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">携手同行</div>
+            <div class="chengyu-pinyin">xié shǒu tóng xíng</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Xi Jinping, III Forum BRI (18/10/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">我们坚守初心、携手同行</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Collaborazione di alta qualità [sintesi]</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Immagine del cammino condiviso non arriva</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="倡议" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.3.3</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">携手同行</div>
+            <div class="chengyu-pinyin">xié shǒu tóng xíng</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Xi Jinping, dialogo BRICS+ (24/08/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">勠力同心 携手同行 迈向发展共同体 (titolo)</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Cooperazione vantaggiosa per tutti [sintesi]</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione (incluso il titolo)</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Doppia omissione: titolo e chengyu</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="倡议" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.4.1</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">行稳致远</div>
+            <div class="chengyu-pinyin">xíng wěn zhì yuǎn</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Wang Yi, ricevimento Capodanno MFA (31/01/2024)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">推动中欧关系行稳致远</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Evento interno MFA, non rilanciato</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card completata" data-cat="倡议" data-status="completata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.4.2</span>
+                <span class="status-badge status-completata">completata</span>
+            </div>
+            <div class="chengyu-char">行稳致远</div>
+            <div class="chengyu-pinyin">xíng wěn zhì yuǎn</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Vertice Cina-Asia Centrale (19/05/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">共同推动中国—中亚关系行稳致远</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">Istituzione meccanismo vertice biennale [notizia breve]</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Omissione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Fonte B condivisa con 3.2.1</span></div>
+            </div>
+        </div>
+        <div class="chengyu-card mancata" data-cat="倡议" data-status="mancata" onclick="this.classList.toggle('expanded')">
+            <div class="card-header">
+                <span class="card-id">Scheda 3.4.3</span>
+                <span class="status-badge status-mancata">mancata</span>
+            </div>
+            <div class="chengyu-char">行稳致远</div>
+            <div class="chengyu-pinyin">xíng wěn zhì yuǎn</div>
+            <span class="category-badge cat-changyi">倡议 Iniziativa</span>
+            <div class="card-meta">Wang Yi, incontro Arabia Saudita-Iran (18/12/2023)</div>
+            <div class="expand-hint">▼ Clicca per dettagli</div>
+            <div class="detail-panel">
+                <div class="detail-row"><span class="detail-label">Testo CN:</span></div>
+                <div class="cn-text">推动和解进程行稳致远，维护地区长治久安</div>
+                <div class="detail-row"><span class="detail-label">Adattamento IT:</span></div>
+                <div class="it-text">—</div>
+                <div class="detail-row"><span class="detail-label">Strategia:</span><span>Mancata diffusione</span></div>
+                <div class="detail-row"><span class="detail-label">Nota:</span><span>Mediazione Medio Oriente; combinazione con 长治久安</span></div>
+            </div>
+        </div>
+        </div>
+
+        <div class="legend">
+            <h3 style="margin-bottom: 15px; color: #333;">Legenda</h3>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4CAF50;"></div>
+                <span><strong>Completata</strong> — Coppia CN + IT verificata con fonte datata</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #9E9E9E;"></div>
+                <span><strong>Mancata diffusione</strong> — Testo cinese esiste, nessun adattamento italiano</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #FFC107;"></div>
+                <span><strong>Parziale</strong> — Post Facebook trovato solo come titolo/sintesi</span>
+            </div>
+        </div>
+
+        <footer>
+            <p>Corpus chiuso il 13/10/2026 — Tutti gli URL verificati personalmente con screenshot datati</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">Regola d'oro: ogni URL aperto di persona, ogni screenshot datato</p>
+        </footer>
+    </div>
+
+    <script>
+    (function() {
+        var cur = { cat: 'all', status: 'all' };
+        var cards = document.querySelectorAll('.chengyu-card');
+        document.querySelectorAll('.filter-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var parts = btn.getAttribute('data-f').split(':');
+                var type = parts[0], val = parts[1];
+                cur[type] = val;
+                var group = btn.parentNode;
+                group.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                cards.forEach(function(c) {
+                    var ok = (cur.cat === 'all' || c.getAttribute('data-cat') === cur.cat) &&
+                             (cur.status === 'all' || c.getAttribute('data-status') === cur.status);
+                    c.style.display = ok ? '' : 'none';
+                });
+            });
+        });
+    })();
+    </script>
+</body>
+</html>
