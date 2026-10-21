@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chengyu Scanner v1.0 — scansione documenti</title>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#10131a;color:#e8eaf0;padding:14px;line-height:1.55}
+h1{font-size:1.35em}
+.sub{color:#8b93a7;font-size:.83em;margin:4px 0 14px}
+.panel{background:#181d29;border:1px solid #2a3346;border-radius:10px;padding:13px;margin-bottom:12px}
+label{display:block;font-weight:600;margin:6px 0 4px;font-size:.88em}
+input[type=file]{width:100%;background:#0f1420;border:1px solid #2a3346;border-radius:8px;color:#e8eaf0;padding:10px;margin:4px 0}
+textarea{width:100%;min-height:90px;background:#0f1420;color:#e8eaf0;border:1px solid #2a3346;border-radius:8px;padding:9px;font-size:13px}
+button{background:#d6336c;color:#fff;border:none;border-radius:8px;padding:12px;font-size:1em;font-weight:600;width:100%;cursor:pointer;margin-top:6px}
+.stat{display:inline-block;background:#0f1420;border:1px solid #2a3346;border-radius:8px;padding:7px 11px;margin:4px 6px 0 0;font-size:.84em}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+th{background:#0f1420;padding:6px;text-align:left}
+td{border-bottom:1px solid #2a3346;padding:6px;vertical-align:top}
+.ok{color:#51cf66;font-weight:700}
+.cand{color:#8b93a7}
+.ctx{font-family:ui-monospace,monospace;background:#0f1420;border-radius:6px;padding:3px 6px}
+.hl{background:#d6336c;color:#fff;padding:0 3px;border-radius:3px;font-weight:700}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:600;color:#8b93a7;font-size:.9em}
+.note{font-size:.78em;color:#8b93a7;margin-top:6px}
+#status{color:#ffd43b;font-size:.85em;margin-top:6px}
+</style>
+</head>
+<body>
+<h1>📄 Chengyu Scanner v1.0</h1>
+<div class="sub">Carica un PDF o incolla un testo → estrae il testo pagina per pagina → trova TUTTE le unità a 4 caratteri → segnala i chengyu verificati. Elaborazione LOCALE (pdf.js gira nel browser; il file non viene caricato da nessuna parte).</div>
+
+<div class="panel">
+<label>1 · Documento PDF (seleziona il file)</label>
+<input type="file" id="pdf" accept=".pdf">
+<div class="note">Il testo viene estratto pagina per pagina: ogni occorrenza avrà il numero di pagina per la verifica sul PDF (regola d'oro).</div>
+<label>oppure incolla il testo qui</label>
+<textarea id="paste" placeholder="粘贴中文文本…"></textarea>
+</div>
+
+<button id="go">🔍 SCANSIONA</button>
+<div id="status"></div>
+
+<div id="results"></div>
+
+<script>
+var VERIFIED = {"和而不同": "表态", "互利共赢": "表态", "独立自主": "表态", "平等相待": "表态", "信口开河": "驳斥", "颠倒是非": "驳斥", "指鹿为马": "驳斥", "双重标准": "驳斥", "同舟共济": "倡议", "守望相助": "倡议", "携手同行": "倡议", "行稳致远": "倡议", "韬光养晦": "表态", "和平发展": "表态", "人类命运共同体": "倡议", "一带一路": "倡议", "合作共赢": "表态", "和平共处": "表态", "求同存异": "表态", "妄自菲薄": "驳斥", "信口雌黄": "驳斥", "白纸黑字": "驳斥", "引火上身": "驳斥", "悬崖勒马": "驳斥", "混淆视听": "驳斥", "凭空捏造": "驳斥", "以己度人": "驳斥", "反躬自省": "驳斥", "贼喊捉贼": "驳斥", "疑邻盗斧": "驳斥", "头破血流": "驳斥", "指手画脚": "驳斥", "说三道四": "驳斥", "颠倒黑白": "驳斥", "出尔反尔": "驳斥", "倒打一耙": "驳斥", "风雨同舟": "倡议", "患难与共": "倡议", "一衣带水": "倡议", "长治久安": "倡议", "望梅止渴": "—", "定海神针": "—", "迎头痛击": "—", "为虎作伥": "—", "金玉良缘": "—", "一叶障目": "—", "自欺欺人": "—", "视而不见": "—", "掩耳盗铃": "—", "风雨飘摇": "—", "塞翁失马": "—", "精卫填海": "—", "自知之明": "—", "成仁取义": "—", "千虑一得": "—", "辅车相依": "—", "唇亡齿寒": "—", "岂曰无衣": "—", "海纳百川": "—", "和则两利": "—", "载歌载舞": "—", "引吭高歌": "—"};
+
+function norm(s){
+    return s
+      .replace(/([\u4e00-\u9fff])[\s\u200b]+(?=[\u4e00-\u9fff])/g, function(m){return m.charAt(0);})
+      .replace(/\u2fc5/g, '\u9e7f');
+}
+
+function scan(text, pageLabel){
+    text = norm(text);
+    var out = [];
+    for (var i = 0; i + 4 <= text.length; i++){
+        var g = text.substr(i, 4);
+        if (/^[\u4e00-\u9fff]{4}$/.test(g)){
+            var a = Math.max(0, i-35), b = Math.min(text.length, i+39);
+            var ctx = text.substring(a,i).replace(/</g,'&lt;') + '«' + g + '»' + text.substring(i+4,b).replace(/</g,'&lt;');
+            ctx = ctx.replace(/\n/g,' ⏎ ');
+            out.push({gram: g, page: pageLabel, ctx: ctx});
+        }
+    }
+    return out;
+}
+
+function render(all){
+    var freq = {}, hits = [];
+    all.forEach(function(o){
+        freq[o.gram] = (freq[o.gram]||0) + 1;
+        if (VERIFIED[o.gram]) hits.push(o);
+    });
+
+    var s = '<div class="panel"><b>Riepilogo</b><br>';
+    s += '<span class="stat">Unità 4 caratteri (uniche): <b>' + Object.keys(freq).length + '</b></span>';
+    s += '<span class="stat">Occorrenze totali: <b>' + all.length + '</b></span>';
+    s += '<span class="stat">Chengyu verificati trovati: <b>' + hits.length + '</b> (' + new Set(hits.map(function(h){return h.gram})).size + ' distinti)</span></div>';
+
+    if (hits.length){
+        s += '<div class="panel"><b>✅ Chengyu verificati</b> (banca dati tesi)<table><tr><th>Chengyu</th><th>Cat.</th><th>Pag.</th><th>Contesto</th></tr>';
+        hits.forEach(function(h){
+            s += '<tr><td class="ok">' + h.gram + '</td><td>' + (VERIFIED[h.gram]||'') + '</td><td>' + h.page + '</td><td class="ctx">…' + h.ctx.replace('«'+h.gram+'»','<span class="hl">'+h.gram+'</span>') + '…</td></tr>';
+        });
+        s += '</table></div>';
+    } else {
+        s += '<div class="panel">Nessun chengyu verificato trovato.</div>';
+    }
+
+    s += '<div class="panel"><details><summary>Candidati: tutte le unità a 4 caratteri per verifica manuale (frequenza ≥ 2)</summary><table><tr><th>Unità</th><th>Freq.</th><th>Nel dizionario?</th></tr>';
+    Object.keys(freq).sort(function(a,b){return freq[b]-freq[a];}).forEach(function(g){
+        if (freq[g] >= 2){
+            s += '<tr><td class="ctx">' + g + '</td><td>' + freq[g] + '</td><td>' + (VERIFIED[g] ? '<span class="ok">SÌ ('+VERIFIED[g]+')</span>' : '<span class="cand">— candidato</span>') + '</td></tr>';
+        }
+    });
+    s += '</table></details></div>';
+
+    s += '<button onclick="exportCSV()">⬇️ Esporta CSV (tutte le occorrenze)</button>';
+    document.getElementById('results').innerHTML = s;
+    window._all = all;
+}
+
+document.getElementById('go').addEventListener('click', function(){
+    var f = document.getElementById('pdf').files[0];
+    var paste = document.getElementById('paste').value.trim();
+    var status = document.getElementById('status');
+
+    if (!f && !paste){ alert('Seleziona un PDF o incolla un testo'); return; }
+
+    if (f){
+        if (typeof pdfjsLib === 'undefined'){ alert('Libreria PDF non caricata (rete lenta o CDN bloccato). Riprova o usa testo incollato.'); return; }
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+        var reader = new FileReader();
+        reader.onload = function(){
+            pdfjsLib.getDocument({data: new Uint8Array(reader.result)}).promise.then(function(pdf){
+                var all = [], pending = [];
+                status.textContent = 'Estrazione da ' + pdf.numPages + ' pagine…';
+                for (var p = 1; p <= pdf.numPages; p++){
+                    pending.push(pdf.getPage(p).then(function(page){
+                        return page.getTextContent().then(function(tc){
+                            var txt = tc.items.map(function(it){return it.str;}).join('');
+                            return scan(txt, 'p.' + page.pageNumber);
+                        });
+                    }));
+                }
+                Promise.all(pending).then(function(arr){
+                    arr.forEach(function(a){ all = all.concat(a); });
+                    status.textContent = '';
+                    render(all);
+                });
+            });
+        };
+        reader.readAsArrayBuffer(f);
+    } else {
+        render(scan(paste, '—'));
+    }
+});
+
+function exportCSV(){
+    var rows = [['unita_4caratteri','pagina','contesto']];
+    window._all.forEach(function(o){ rows.push([o.gram, o.page, o.ctx.replace(/«|»/g,'')]); });
+    var csv = '\uFEFF' + rows.map(function(r){ return r.map(function(x){ return '"'+String(x).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+    a.download = 'chengyu_scan.csv';
+    a.click();
+}
+</script>
+</body>
+</html>
