@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slot Extractor v1.0 — Corpus-based concordancer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:#1a1a2e;color:#eee;padding:15px;line-height:1.6}
+h1{font-size:1.4em;margin-bottom:4px}
+.sub{color:#8b9bb4;font-size:.85em;margin-bottom:16px}
+.panel{background:#16213e;border:1px solid #2d4059;border-radius:10px;padding:14px;margin-bottom:14px}
+label{display:block;font-weight:600;margin:8px 0 4px;font-size:.9em}
+textarea{width:100%;min-height:110px;background:#0f3460;color:#eee;border:1px solid #2d4059;border-radius:8px;padding:10px;font-family:ui-monospace,monospace;font-size:13px}
+input[type=file]{margin:6px 0;background:#0f3460;color:#eee;padding:10px;border-radius:8px;width:100%;border:1px solid #2d4059}
+input[type=number]{width:80px;background:#0f3460;color:#eee;border:1px solid #2d4059;border-radius:6px;padding:6px}
+button{background:#e94560;color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:1em;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
+button:disabled{background:#555;cursor:default}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+th{background:#0f3460;padding:6px;text-align:left;position:sticky;top:0}
+td{border-bottom:1px solid #2d4059;padding:6px;vertical-align:top}
+.ctx{font-family:ui-monospace,monospace;background:#0f3460;border-radius:6px;padding:4px 6px}
+.hl{background:#e94560;color:#fff;padding:0 3px;border-radius:3px;font-weight:700}
+.stat{display:inline-block;background:#0f3460;border:1px solid #2d4059;border-radius:8px;padding:8px 12px;margin:4px 6px 0 0;font-size:.85em}
+.note{font-size:.8em;color:#8b9bb4;margin-top:6px}
+#out{max-height:600px;overflow:auto}
+</style>
+</head>
+<body>
+<h1>🔬 Slot Extractor v1.0</h1>
+<div class="sub">Concordanziatore a corrispondenza morfemica esatta — elaborazione LOCALE, i file non lasciano mai questo dispositivo. Linguaggio-agnostico.</div>
+
+<div class="panel">
+<label>1 · Lista unità (una per riga: unità [TAB o ;] categoria — categoria opzionale)</label>
+<textarea id="terms" placeholder="和而不同&#9;表态&#10;同舟共济&#9;倡议&#10;指鹿为马&#9;驳斥&#10;far finta di niente&#9;italiano">和而不同;表态
+互利共赢;表态
+独立自主;表态
+平等相待;表态
+信口开河;驳斥
+颠倒是非;驳斥
+指鹿为马;驳斥
+双重标准;驳斥
+同舟共济;倡议
+守望相助;倡议
+携手同行;倡议
+行稳致远;倡议</textarea>
+<div class="note">Separatore: TAB, punto e virgola o virgola. Le varianti sinonimiche NON vengono unite (regola del morfema esatto).</div>
+
+<label>2 · Finestra di contesto (caratteri prima/dopo)</label>
+<input type="number" id="win" value="60" min="10" max="300">
+
+<label>3 · Corpus — seleziona uno o più file .txt (esporta i PDF in txt da WPS: 文件 → 导出为文本)</label>
+<input type="file" id="files" multiple accept=".txt,.csv,.md">
+</div>
+
+<button id="go">⚙️ ESEGUI ESTRAZIONE</button>
+
+<div class="panel" style="margin-top:14px">
+<div id="stats"></div>
+<div id="out"></div>
+</div>
+
+<script>
+document.getElementById('go').addEventListener('click', function(){
+  var raw = document.getElementById('terms').value;
+  var terms = [];
+  raw.split('\n').forEach(function(l){
+    l = l.trim(); if(!l) return;
+    var parts = l.split(/[\t;,，；]/);
+    terms.push({t: parts[0].trim(), cat: (parts[1]||'').trim()});
+  });
+  if(!terms.length){ alert('Lista unità vuota'); return; }
+  var win = parseInt(document.getElementById('win').value)||60;
+  var files = document.getElementById('files').files;
+  if(!files.length){ alert('Seleziona almeno un file'); return; }
+
+  var results = [], stats = {}, done = 0;
+
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+  Array.prototype.slice.call(files).forEach(function(f){
+    var r = new FileReader();
+    r.onload = function(){
+      var text = r.result;
+      terms.forEach(function(tm){
+        var idx = 0, count = 0;
+        while(true){
+          var pos = text.indexOf(tm.t, idx);
+          if(pos === -1) break;
+          count++;
+          var a = Math.max(0, pos-win), b = Math.min(text.length, pos+tm.t.length+win);
+          var ctx = esc(text.substring(a,pos)) + '<span class="hl">' + esc(tm.t) + '</span>' + esc(text.substring(pos+tm.t.length, b));
+          results.push({file:f.name, term:tm.t, cat:tm.cat, pos:pos, ctx:ctx.replace(/\n/g,' ⏎ ')});
+          idx = pos + tm.t.length;
+        }
+        if(count){
+          var k = tm.cat + '|' + tm.t;
+          stats[k] = (stats[k]||0) + count;
+        }
+      });
+      done++;
+      if(done === files.length) render();
+    };
+    r.readAsText(f, 'UTF-8');
+  });
+
+  function render(){
+    var s = '<div style="margin-bottom:8px;font-weight:600">Riepilogo occorrenze per unità (tutti i file):</div>';
+    Object.keys(stats).sort().forEach(function(k){
+      var p = k.split('|');
+      s += '<span class="stat"><b>'+esc(p[1])+'</b> <span style="color:#e94560">'+esc(p[0])+'</span> × '+stats[k]+'</span>';
+    });
+    document.getElementById('stats').innerHTML = s || '<div class="note">Nessuna occorrenza trovata.</div>';
+
+    var h = '<table><tr><th>#</th><th>File</th><th>Unità</th><th>Cat.</th><th>Pos.</th><th>Contesto</th></tr>';
+    results.forEach(function(r,i){
+      h += '<tr><td>'+(i+1)+'</td><td>'+esc(r.file)+'</td><td><b>'+esc(r.term)+'</b></td><td>'+esc(r.cat)+'</td><td>'+r.pos+'</td><td class="ctx">…'+r.ctx+'…</td></tr>';
+    });
+    h += '</table>';
+    if(results.length){
+      h += '<button onclick="exportCSV()" style="margin-top:12px">⬇️ Esporta matrice CSV (apre in WPS/Excel)</button>';
+    }
+    document.getElementById('out').innerHTML = h;
+    window._results = results;
+  }
+});
+
+function exportCSV(){
+  var rows = [['file','unita','categoria','posizione','contesto']];
+  window._results.forEach(function(r){
+    var c = r.ctx.replace(/<[^>]+>/g,'').replace(/…/g,'');
+    rows.push([r.file, r.term, r.cat, r.pos, c]);
+  });
+  var csv = '\uFEFF' + rows.map(function(r){ return r.map(function(x){ return '"'+String(x).replace(/"/g,'""')+'"'; }).join(';'); }).join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'slot_extractor_output.csv';
+  a.click();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chengyu Finder — 成语搜索</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: #fafafa; padding: 15px; line-height: 1.6;
+        }
+        .container { max-width: 100%; margin: 0 auto; }
+        .header {
+            background: #c41e3a; color: white; padding: 20px; border-radius: 10px;
+            margin-bottom: 20px; text-align: center;
+        }
+        .header h1 { font-size: 1.5em; margin-bottom: 5px; }
+        .header p { font-size: 0.9em; opacity: 0.9; }
+        .search-box {
+            background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .search-box h3 { margin-bottom: 15px; color: #333; font-size: 1.1em; }
+        textarea {
+            width: 100%; min-height: 120px; padding: 12px; border: 2px solid #ddd;
+            border-radius: 8px; font-size: 16px; font-family: inherit; margin-bottom: 15px;
+        }
+        .btn {
+            display: block; width: 100%; padding: 16px; background: #c41e3a; color: white;
+            border: none; border-radius: 8px; font-size: 18px; font-weight: bold;
+            cursor: pointer; text-align: center;
+        }
+        .samples { margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+        .sample-btn {
+            display: inline-block; padding: 8px 14px; background: #f0f0f0;
+            border-radius: 6px; margin: 0 8px 8px 0; cursor: pointer; font-size: 0.9em;
+        }
+        .results {
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: none;
+        }
+        .results.show { display: block; }
+        .results h3 { color: #c41e3a; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #f0f0f0; }
+        .chengyu-item {
+            background: #f8f8f8; padding: 15px; margin-bottom: 12px;
+            border-left: 4px solid #c41e3a; border-radius: 0 8px 8px 0;
+        }
+        .chengyu-char { font-size: 1.8em; color: #c41e3a; font-weight: bold; margin-bottom: 5px; }
+        .chengyu-info { font-size: 0.95em; color: #555; }
+        .chengyu-info strong { color: #333; }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.85em; font-weight: bold; margin-left: 5px;
+        }
+        .b-biaotai { background: #e3f2fd; color: #1565c0; }
+        .b-bochi { background: #ffebee; color: #c62828; }
+        .b-changyi { background: #e8f5e9; color: #2e7d32; }
+        .highlighted { background: #fff8e1; padding: 15px; border-radius: 8px; margin-top: 15px; line-height: 2; }
+        .hl { background: #ffeb3b; padding: 2px 4px; border-radius: 3px; font-weight: bold; }
+        .stats { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .stat { flex: 1; min-width: 70px; background: #f5f5f5; padding: 10px; border-radius: 8px; text-align: center; }
+        .stat-num { font-size: 1.5em; font-weight: bold; color: #c41e3a; }
+        .stat-label { font-size: 0.8em; color: #666; }
+        .ref {
+            background: white; padding: 20px; border-radius: 10px; margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .ref h3 { color: #333; margin-bottom: 15px; }
+        .ref-item {
+            display: flex; gap: 15px; align-items: flex-start; padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .ref-char {
+            font-size: 1.4em; font-weight: bold; color: #c41e3a;
+            min-width: 150px; font-family: "PingFang SC", "Microsoft YaHei", serif;
+        }
+        .ref-info { font-size: 0.9em; color: #555; }
+        .footer { text-align: center; padding: 20px; color: #999; font-size: 0.85em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Chengyu Finder</h1>
+            <p>成语搜索器 — Cerca chengyu nei testi</p>
+        </div>
+
+        <div class="search-box">
+            <h3>📋 Inserisci testo cinese:</h3>
+            <textarea id="inputText" placeholder="粘贴中文文本...">我们要秉持和而不同的原则，坚持独立自主的外交政策，反对信口开河、颠倒是非的行径，推动构建人类命运共同体。</textarea>
+            <button class="btn" id="searchBtn">🔍 CERCA CHENGYU</button>
+
+            <div class="samples">
+                <p style="font-size:0.9em;color:#666;margin-bottom:10px;">Esempi (点击填入):</p>
+                <span class="sample-btn" data-s="1">Testo 1</span>
+                <span class="sample-btn" data-s="2">Testo 2</span>
+                <span class="sample-btn" data-s="3">Testo 3</span>
+            </div>
+        </div>
+
+        <div class="results" id="results">
+            <h3>📊 Risultati</h3>
+            <div class="stats" id="stats"></div>
+            <div id="foundList"></div>
+            <div class="highlighted" id="highlighted" style="display:none;">
+                <strong>Testo evidenziato:</strong><br><br>
+                <span id="hlText"></span>
+            </div>
+        </div>
+
+        <div class="ref">
+            <h3>📚 Tutti i 20 chengyu del database</h3>
+            <div class="ref-item">
+                <div class="ref-char">和而不同</div>
+                <div class="ref-info"><strong>hé ér bù tóng</strong>
+                <span class="badge b-biaotai">表态</span><br>
+                <strong>Significato:</strong> unità nella diversità &nbsp;|&nbsp; <strong>Origine:</strong> Confucio, Lunyu 13.23</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">互利共赢</div>
+                <div class="ref-info"><strong>hù lì gòng yíng</strong>
+                <span class="badge b-biaotai">表态</span><br>
+                <strong>Significato:</strong> vantaggio reciproco &nbsp;|&nbsp; <strong>Origine:</strong> Moderno</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">独立自主</div>
+                <div class="ref-info"><strong>dú lì zì zhǔ</strong>
+                <span class="badge b-biaotai">表态</span><br>
+                <strong>Significato:</strong> sovranità decisionale &nbsp;|&nbsp; <strong>Origine:</strong> Zhang Zhidong, Qing</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">平等相待</div>
+                <div class="ref-info"><strong>píng děng xiāng dài</strong>
+                <span class="badge b-biaotai">表态</span><br>
+                <strong>Significato:</strong> uguaglianza reciproca &nbsp;|&nbsp; <strong>Origine:</strong> Moderno</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">信口开河</div>
+                <div class="ref-info"><strong>xìn kǒu kāi hé</strong>
+                <span class="badge b-bochi">驳斥</span><br>
+                <strong>Significato:</strong> parlare a vanvera &nbsp;|&nbsp; <strong>Origine:</strong> Classico</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">颠倒是非</div>
+                <div class="ref-info"><strong>diān dǎo shì fēi</strong>
+                <span class="badge b-bochi">驳斥</span><br>
+                <strong>Significato:</strong> invertire vero/falso &nbsp;|&nbsp; <strong>Origine:</strong> Classico</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">指鹿为马</div>
+                <div class="ref-info"><strong>zhǐ lù wéi mǎ</strong>
+                <span class="badge b-bochi">驳斥</span><br>
+                <strong>Significato:</strong> spacciare falso per vero &nbsp;|&nbsp; <strong>Origine:</strong> Zhao Gao, Qin</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">双重标准</div>
+                <div class="ref-info"><strong>shuāng chóng biāo zhǔn</strong>
+                <span class="badge b-bochi">驳斥</span><br>
+                <strong>Significato:</strong> doppi standard &nbsp;|&nbsp; <strong>Origine:</strong> Calco occidentale</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">同舟共济</div>
+                <div class="ref-info"><strong>tóng zhōu gòng jì</strong>
+                <span class="badge b-changyi">倡议</span><br>
+                <strong>Significato:</strong> collaborare in difficoltà &nbsp;|&nbsp; <strong>Origine:</strong> Classico</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">守望相助</div>
+                <div class="ref-info"><strong>shǒu wàng xiāng zhù</strong>
+                <span class="badge b-changyi">倡议</span><br>
+                <strong>Significato:</strong> solidarietà reciproca &nbsp;|&nbsp; <strong>Origine:</strong> Mengzi</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">携手同行</div>
+                <div class="ref-info"><strong>xié shǒu tóng xíng</strong>
+                <span class="badge b-changyi">倡议</span><br>
+                <strong>Significato:</strong> agire insieme &nbsp;|&nbsp; <strong>Origine:</strong> Moderno</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">行稳致远</div>
+                <div class="ref-info"><strong>xíng wěn zhì yuǎn</strong>
+                <span class="badge b-changyi">倡议</span><br>
+                <strong>Significato:</strong> procedere con prudenza &nbsp;|&nbsp; <strong>Origine:</strong> Moderno</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">韬光养晦</div>
+                <div class="ref-info"><strong>tāo guāng yǎng huì</strong>
+                <span class="badge b-biaotai">表态</span><br>
+                <strong>Significato:</strong> celare capacità &nbsp;|&nbsp; <strong>Origine:</strong> Deng Xiaoping</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">和平发展</div>
+                <div class="ref-info"><strong>hé píng fā zhǎn</strong>
+                <span class="badge b-biaotai">表态</span><br>
+                <strong>Significato:</strong> sviluppo pacifico &nbsp;|&nbsp; <strong>Origine:</strong> Moderno</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">人类命运共同体</div>
+                <div class="ref-info"><strong>rén lèi mìng yùn gòng tóng tǐ</strong>
+                <span class="badge b-changyi">倡议</span><br>
+                <strong>Significato:</strong> comunità destino condiviso &nbsp;|&nbsp; <strong>Origine:</strong> Xi Jinping 2013</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">一带一路</div>
+                <div class="ref-info"><strong>yī dài yī lù</strong>
+                <span class="badge b-changyi">倡议</span><br>
+                <strong>Significato:</strong> Belt and Road &nbsp;|&nbsp; <strong>Origine:</strong> Xi Jinping 2013</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">合作共赢</div>
+                <div class="ref-info"><strong>hé zuò gòng yíng</strong>
+                <span class="badge b-biaotai">表态</span><br>
+                <strong>Significato:</strong> cooperazione win-win &nbsp;|&nbsp; <strong>Origine:</strong> Moderno</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">和平共处</div>
+                <div class="ref-info"><strong>hé píng gòng chǔ</strong>
+                <span class="badge b-biaotai">表态</span><br>
+                <strong>Significato:</strong> coesistenza pacifica &nbsp;|&nbsp; <strong>Origine:</strong> 1954</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">求同存异</div>
+                <div class="ref-info"><strong>qiú tóng cún yì</strong>
+                <span class="badge b-biaotai">表态</span><br>
+                <strong>Significato:</strong> cercare comune, preservare diverso &nbsp;|&nbsp; <strong>Origine:</strong> Zhou Enlai</div>
+            </div>
+            <div class="ref-item">
+                <div class="ref-char">妄自菲薄</div>
+                <div class="ref-info"><strong>wàng zì fěi bó</strong>
+                <span class="badge b-bochi">驳斥</span><br>
+                <strong>Significato:</strong> denigrare se stessi &nbsp;|&nbsp; <strong>Origine:</strong> Classico</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Chengyu Finder v2.0 — Oksana Boiko</p>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        var DB = {"和而不同": {"py": "hé ér bù tóng", "cat": "表态", "mean": "unità nella diversità", "orig": "Confucio, Lunyu 13.23"}, "互利共赢": {"py": "hù lì gòng yíng", "cat": "表态", "mean": "vantaggio reciproco", "orig": "Moderno"}, "独立自主": {"py": "dú lì zì zhǔ", "cat": "表态", "mean": "sovranità decisionale", "orig": "Zhang Zhidong, Qing"}, "平等相待": {"py": "píng děng xiāng dài", "cat": "表态", "mean": "uguaglianza reciproca", "orig": "Moderno"}, "信口开河": {"py": "xìn kǒu kāi hé", "cat": "驳斥", "mean": "parlare a vanvera", "orig": "Classico"}, "颠倒是非": {"py": "diān dǎo shì fēi", "cat": "驳斥", "mean": "invertire vero/falso", "orig": "Classico"}, "指鹿为马": {"py": "zhǐ lù wéi mǎ", "cat": "驳斥", "mean": "spacciare falso per vero", "orig": "Zhao Gao, Qin"}, "双重标准": {"py": "shuāng chóng biāo zhǔn", "cat": "驳斥", "mean": "doppi standard", "orig": "Calco occidentale"}, "同舟共济": {"py": "tóng zhōu gòng jì", "cat": "倡议", "mean": "collaborare in difficoltà", "orig": "Classico"}, "守望相助": {"py": "shǒu wàng xiāng zhù", "cat": "倡议", "mean": "solidarietà reciproca", "orig": "Mengzi"}, "携手同行": {"py": "xié shǒu tóng xíng", "cat": "倡议", "mean": "agire insieme", "orig": "Moderno"}, "行稳致远": {"py": "xíng wěn zhì yuǎn", "cat": "倡议", "mean": "procedere con prudenza", "orig": "Moderno"}, "韬光养晦": {"py": "tāo guāng yǎng huì", "cat": "表态", "mean": "celare capacità", "orig": "Deng Xiaoping"}, "和平发展": {"py": "hé píng fā zhǎn", "cat": "表态", "mean": "sviluppo pacifico", "orig": "Moderno"}, "人类命运共同体": {"py": "rén lèi mìng yùn gòng tóng tǐ", "cat": "倡议", "mean": "comunità destino condiviso", "orig": "Xi Jinping 2013"}, "一带一路": {"py": "yī dài yī lù", "cat": "倡议", "mean": "Belt and Road", "orig": "Xi Jinping 2013"}, "合作共赢": {"py": "hé zuò gòng yíng", "cat": "表态", "mean": "cooperazione win-win", "orig": "Moderno"}, "和平共处": {"py": "hé píng gòng chǔ", "cat": "表态", "mean": "coesistenza pacifica", "orig": "1954"}, "求同存异": {"py": "qiú tóng cún yì", "cat": "表态", "mean": "cercare comune, preservare diverso", "orig": "Zhou Enlai"}, "妄自菲薄": {"py": "wàng zì fěi bó", "cat": "驳斥", "mean": "denigrare se stessi", "orig": "Classico"}};
+
+        var SAMPLES = {
+            1: '我们要秉持和而不同的原则，坚持独立自主的外交政策，推动构建人类命运共同体。中国始终奉行互利共赢的开放战略，反对任何形式的保护主义和双重标准。',
+            2: '在国际事务中，某些国家信口开河、颠倒是非，甚至指鹿为马，这种行径不得人心。中国主张同舟共济、守望相助，与各国携手同行，推动构建新型国际关系。',
+            3: '历史上，中国坚持韬光养晦、有所作为，现在更加自信地走向世界。我们坚持和平发展道路，倡导求同存异，推动一带一路建设，实现合作共赢。'
+        };
+
+        document.getElementById('searchBtn').addEventListener('click', doSearch);
+        document.querySelectorAll('.sample-btn').forEach(function(b) {
+            b.addEventListener('click', function() {
+                document.getElementById('inputText').value = SAMPLES[b.getAttribute('data-s')];
+            });
+        });
+
+        function doSearch() {
+            var text = document.getElementById('inputText').value;
+            if (!text) { alert('Inserisci un testo!'); return; }
+
+            var found = [];
+            var hlText = text;
+            var counts = {'表态':0, '驳斥':0, '倡议':0};
+            var total = 0;
+
+            for (var cy in DB) {
+                if (text.indexOf(cy) !== -1) {
+                    var cnt = text.split(cy).length - 1;
+                    found.push({cy:cy, cnt:cnt, data:DB[cy]});
+                    counts[DB[cy].cat]++;
+                    total += cnt;
+                    hlText = hlText.split(cy).join('<span class="hl">' + cy + '</span>');
+                }
+            }
+
+            var statsHtml = '<div class="stat"><div class="stat-num">' + found.length + '</div><div class="stat-label">Unici</div></div>';
+            statsHtml += '<div class="stat"><div class="stat-num">' + total + '</div><div class="stat-label">Totali</div></div>';
+            statsHtml += '<div class="stat"><div class="stat-num" style="color:#1565c0;">' + counts['表态'] + '</div><div class="stat-label">表态</div></div>';
+            statsHtml += '<div class="stat"><div class="stat-num" style="color:#c62828;">' + counts['驳斥'] + '</div><div class="stat-label">驳斥</div></div>';
+            statsHtml += '<div class="stat"><div class="stat-num" style="color:#2e7d32;">' + counts['倡议'] + '</div><div class="stat-label">倡议</div></div>';
+            document.getElementById('stats').innerHTML = statsHtml;
+
+            var html = '';
+            if (found.length === 0) {
+                html = '<p style="text-align:center;color:#999;padding:20px;">Nessun chengyu trovato</p>';
+            } else {
+                for (var i = 0; i < found.length; i++) {
+                    var f = found[i];
+                    var badgeClass = 'b-biaotai';
+                    if (f.data.cat === '驳斥') badgeClass = 'b-bochi';
+                    if (f.data.cat === '倡议') badgeClass = 'b-changyi';
+
+                    html += '<div class="chengyu-item">';
+                    html += '<div class="chengyu-char">' + f.cy + '</div>';
+                    html += '<div class="chengyu-info">';
+                    html += '<strong>' + f.data.py + '</strong>';
+                    if (f.cnt > 1) html += ' (×' + f.cnt + ')';
+                    html += '<span class="badge ' + badgeClass + '">' + f.data.cat + '</span><br>';
+                    html += '<strong>Significato:</strong> ' + f.data.mean + '<br>';
+                    html += '<strong>Origine:</strong> ' + f.data.orig;
+                    html += '</div></div>';
+                }
+            }
+            document.getElementById('foundList').innerHTML = html;
+
+            if (found.length > 0) {
+                document.getElementById('highlighted').style.display = 'block';
+                document.getElementById('hlText').innerHTML = hlText;
+            } else {
+                document.getElementById('highlighted').style.display = 'none';
+            }
+
+            document.getElementById('results').className = 'results show';
+            document.getElementById('results').scrollIntoView();
+        }
+    })();
+    </script>
+</body>
+</html>
